@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: checkmate-app
+    env: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: PORT
+        value: 8765
+      - key: LLM_MODEL
+        value: gemini-3.6-flash
+      - key: LLM_BASE_URL
+        value: https://generativelanguage.googleapis.com/v1beta/openai/
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        value: AdminPassword123!
+    disk:
+      name: bod-data
+      mountPath: /app/.bod_data
+      sizeGB: 1
