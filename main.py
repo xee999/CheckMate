@@ -966,7 +966,7 @@ def build_ui():
                             ui.notification(f"Uploaded RFP: {e.name}", type="positive")
 
                     ui.upload(on_upload=_handle_rfp_upload, auto_upload=True, multiple=True).props(
-                        "accept='.pdf,.docx,.xlsx,.txt,.png,.jpg' label='☁️ Drag & Drop RFP File(s) or Folder Contents Here'"
+                        "multiple directory webkitdirectory accept='.pdf,.docx,.xlsx,.txt,.png,.jpg' label='☁️ Drag & Drop RFP File(s) or Folder Here'"
                     ).classes("w-full rounded-xl border-dashed border-2 border-emerald-500/40 p-2 mb-1")
 
                     rfp_input.on("keydown.enter", lambda: _load_rfp(rfp_input.value))
@@ -1009,13 +1009,16 @@ def build_ui():
                         upload_dir.mkdir(parents=True, exist_ok=True)
                         dest = upload_dir / e.name
                         dest.write_bytes(e.content.read())
+                        
+                        sub_files = [f for f in upload_dir.iterdir() if f.is_file() and not f.name.startswith(".")]
                         sub_input.value = str(upload_dir)
                         setattr(state, "sub_path", str(upload_dir))
-                        ui.notification(f"Uploaded Proposal: {e.name}", type="positive")
+                        ui.notification(f"Uploaded to Submission Folder ({len(sub_files)} docs): {e.name}", type="positive")
 
                     ui.upload(on_upload=_handle_sub_upload, auto_upload=True, multiple=True).props(
-                        "accept='.pdf,.docx,.xlsx,.txt' label='☁️ Drag & Drop Proposal Files Here'"
+                        "multiple directory webkitdirectory accept='.pdf,.docx,.xlsx,.txt' label='☁️ Drag & Drop Submission File(s) or Folder Here'"
                     ).classes("w-full rounded-xl border-dashed border-2 border-emerald-500/40 p-2")
+
 
 
 
