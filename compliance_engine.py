@@ -774,12 +774,13 @@ class ComplianceEngine:
             "messages": messages,
             "temperature": temperature,
         }
-        if self._is_google_endpoint(url):
+        if self._is_google_endpoint(url) or "gemini" in self.model.lower():
             payload["max_tokens"] = 8192
             if require_json:
                 payload["response_format"] = {"type": "json_object"}
         else:
             payload["max_tokens"] = 2048
+
 
         max_retries = 15
         for attempt in range(max_retries):

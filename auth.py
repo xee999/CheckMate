@@ -16,12 +16,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 
-# Database path
-DB_DIR = Path.home() / ".bod"
+# Database path inside workspace
+DB_DIR = Path(__file__).parent / ".bod_data"
 DB_PATH = DB_DIR / "bod_web.db"
 
 # Master encryption secret from ENV or auto-generated local key file
 SECRET_KEY_PATH = DB_DIR / ".secret_key"
+
 
 
 def _get_master_key() -> bytes:

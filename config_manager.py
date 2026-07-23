@@ -17,8 +17,10 @@ except ImportError:
 CONFIG_DIR = Path.home() / ".bod"
 CONFIG_PATH = CONFIG_DIR / "config.json"
 
-DEFAULT_MODEL = "opencode/deepseek-v4-flash-free"
-DEFAULT_BASE_URL = "https://opencode.ai/zen/v1"
+DEFAULT_MODEL = "gemini-3.6-flash"
+DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+
+
 
 
 def load_config() -> dict:

@@ -11,7 +11,9 @@ build/
 playwright/
 *.db
 .secret_key
+.bod_data/
 .DS_Store
 server.log
 recovered_reports/
+
 

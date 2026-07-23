@@ -14,9 +14,10 @@ import config_manager
 
 # Preset popular LLM models for easy admin selection
 PRESET_MODELS = [
-    "opencode/deepseek-v4-flash-free",
+    "gemini-3.6-flash",
     "gemini-2.5-flash",
     "gemini-2.0-flash",
+    "opencode/deepseek-v4-flash-free",
     "gpt-4o",
     "gpt-4o-mini",
     "claude-3-5-sonnet",
@@ -24,12 +25,14 @@ PRESET_MODELS = [
 ]
 
 PRESET_BASE_URLS = {
-    "opencode/deepseek-v4-flash-free": "https://opencode.ai/zen/v1",
+    "gemini-3.6-flash": "https://generativelanguage.googleapis.com/v1beta/openai/",
     "gemini-2.5-flash": "https://generativelanguage.googleapis.com/v1beta/openai/",
     "gemini-2.0-flash": "https://generativelanguage.googleapis.com/v1beta/openai/",
+    "opencode/deepseek-v4-flash-free": "https://opencode.ai/zen/v1",
     "gpt-4o": "https://api.openai.com/v1",
     "gpt-4o-mini": "https://api.openai.com/v1",
 }
+
 
 
 def render_admin_console(user_session: dict, on_navigate_workspace) -> None:

@@ -21,9 +21,7 @@ from pathlib import Path
 from queue import Queue
 from typing import Optional
 
-os.environ["NICEGUI_NATIVE"] = "false"
-
-from nicegui import ui
+from nicegui import app, ui
 
 import config_manager
 import pdf_extractor
@@ -37,12 +35,15 @@ import admin_console
 
 import logging
 
-_log_file = os.path.join(str(Path.home()), ".bod", "bod.log")
-os.makedirs(os.path.dirname(_log_file), exist_ok=True)
+_log_dir = Path(__file__).parent / ".bod_data"
+_log_dir.mkdir(parents=True, exist_ok=True)
+_log_file = str(_log_dir / "bod.log")
 logging.basicConfig(
+
     filename=_log_file,
     level=logging.DEBUG,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+
     force=True,
 )
 logger = logging.getLogger("bod")
@@ -92,6 +93,9 @@ class State:
     manual_model_select: bool = False
     last_report: Optional[object] = None
     report_criteria: list[dict] = list()
+    active_user_id: int = 1
+    active_username: str = "admin"
+
 
 
 state = State()
@@ -148,17 +152,16 @@ if tesseract_path:
 # ── Helpers ────────────────────────────────────────────────────────
 
 def _card():
-    return ui.card().props(
-        f'style="background: #FFFFFF; border: 1px solid {BORDER}; '
-        f'border-radius: 20px; padding: 24px; width: 100%; box-shadow: 0 10px 25px -5px rgba(11, 9, 10, 0.04), 0 8px 10px -6px rgba(11, 9, 10, 0.02);"'
+    return ui.card().classes(
+        "w-full bg-white dark:bg-gray-800/90 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200/80 dark:border-gray-700/80 backdrop-blur-md"
     )
 
 
 def _primary_btn(text: str, color: str, cb):
     return ui.button(text, on_click=cb).props(
-        f'unelevated style="background-color: {LIME} !important; color: {CHARCOAL} !important; font-size: 16px; '
-        f'font-weight: 700; padding: 12px 28px; border-radius: 9999px; width: 100%; border: none; box-shadow: 0 4px 14px rgba(204, 244, 88, 0.4);"'
-    )
+        f'unelevated style="background: linear-gradient(135deg, {LIME} 0%, #10B981 100%) !important; color: #0F172A !important; font-size: 16px; '
+        f'font-weight: 800; padding: 12px 28px; border-radius: 9999px; width: 100%; border: none; box-shadow: 0 8px 20px -4px rgba(16, 185, 129, 0.4); cursor: pointer;"'
+    ).classes("hover:scale-[1.01] active:scale-[0.99] transition-transform")
 
 
 def _small_btn(text: str, color: str, cb):
@@ -167,7 +170,8 @@ def _small_btn(text: str, color: str, cb):
     return ui.button(text, on_click=cb).props(
         f'unelevated style="background-color: {bg_col} !important; color: {text_col} !important; '
         f'font-size: 13px; font-weight: 600; padding: 8px 20px; border-radius: 9999px; border: none;"'
-    )
+    ).classes("hover:opacity-90 transition-opacity")
+
 
 
 def _estimate_document_stats(path: str) -> tuple[int, int]:
@@ -505,7 +509,9 @@ def _make_progress_callback():
 # UI construction (runs per client connection)
 # ═══════════════════════════════════════════════════════════════════
 
+@ui.page('/')
 def build_ui():
+
     global log_scroll, log_column, main_btn, sub_input, rfp_label, rfp_input
     global result_container, cfg_container, main_container, test_log, test_btn
     global narrated_column, narrated_scroll, orb_element, status_pill
@@ -578,6 +584,9 @@ def build_ui():
         return
 
     is_admin = user_session.get("role") == "admin"
+    state.active_user_id = user_session.get("id", 1)
+    state.active_username = user_session.get("username", "admin")
+
 
     # ═══════════════════════════════════════════════════════════════
     # SCREEN 0 — Admin Management Console
@@ -840,52 +849,97 @@ def build_ui():
 
             # ── Right column ──────────────────────────────────────
             with ui.column().classes("flex-1 gap-6 min-w-0"):
-                # Model Selection card
+                # Saved Reports Vault Card (Visible to all users)
                 with _card():
-                    ui.label("Model Selection").classes("text-lg font-semibold")
-                    ui.label("Optimal model selected automatically based on file properties. Override below:").classes(
-                        "text-sm"
-                    ).style(f"color: {MUTED}")
-                    
-                    cfg = config_manager.load_config()
-                    configured_model = cfg.get("model", config_manager.DEFAULT_MODEL)
-                    
-                    options = [
-                        "gemini-3.6-flash",
-                        "gemini-3.5-flash",
-                        "gemini-3.5-flash-lite",
-                        "gemini-3.1-pro",
-                        "gemini-3.1-flash-lite",
-                        "gemini-2.5-pro",
-                        "gemini-2.5-flash",
-                        "gemini-2.5-flash-lite",
-                        "gemini-2.0-flash",
-                        "gemini-2.0-flash-001",
-                        "gemini-2.0-flash-lite",
-                        "google/gemini-3.6-flash",
-                        "google/gemini-3.5-flash",
-                        "google/gemini-3.1-pro",
-                        "google/gemini-2.5-pro",
-                        "google/gemini-2.5-flash",
-                        "google/gemini-2.0-flash-001",
-                        "opencode/deepseek-v4-flash-free",
-                    ]
-                    if configured_model not in options:
-                        options.append(configured_model)
+                    with ui.row().classes("w-full justify-between items-center mb-1"):
+                        with ui.row().classes("items-center gap-2"):
+                            ui.html('''<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                                <line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>
+                            </svg>''')
+                            ui.label("Saved Reports & Output Vault").classes("text-lg font-bold text-gray-900 dark:text-white")
                         
-                    def _on_model_change(e):
-                        if e.value:
-                            state.manual_model_select = True
+                        def _trigger_refresh_vault():
+                            _refresh_vault_list()
 
-                    model_dropdown = ui.select(
-                        options=options,
-                        value=configured_model,
-                        on_change=_on_model_change
-                    ).props('style="width: 100%; font-size: 16px;"').classes("w-full")
-                    
-                    recommendation_label = ui.label("Select files to see model recommendation.").classes("text-xs mt-1").style(
-                        f"color: {MUTED}; font-style: italic;"
-                    )
+                        ui.button(icon="refresh", on_click=_trigger_refresh_vault).props("flat round size=sm color=primary").classes("hover:rotate-180 transition-transform")
+
+                    ui.label("Access, preview, and download all your historical compliance evaluation reports.").classes("text-xs text-gray-500 mb-4")
+
+                    vault_list_container = ui.column().classes("w-full gap-2 max-h-72 overflow-y-auto")
+
+                    def _refresh_vault_list():
+                        vault_list_container.clear()
+                        runs = auth.list_audit_runs(user_id=state.active_user_id)
+                        if not runs:
+                            with vault_list_container:
+                                ui.label("No saved reports yet. Run a compliance check to generate outputs.").classes("text-xs text-gray-400 italic p-4 text-center w-full")
+                            return
+
+                        with vault_list_container:
+                            for r in runs:
+                                with ui.row().classes("w-full items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/60 dark:border-gray-600/60 hover:border-emerald-500/50 transition-all"):
+                                    with ui.column().classes("gap-0 flex-1 min-w-0 pr-2"):
+                                        ui.label(r["rfp_filename"]).classes("font-semibold text-xs truncate text-gray-900 dark:text-gray-100")
+                                        ui.label(r["created_at"][:19].replace("T", " ")).classes("text-[10px] text-gray-400")
+
+                                    score_val = r.get("score", 0.0)
+                                    score_bg = "bg-emerald-500" if score_val >= 80 else ("bg-amber-500" if score_val >= 50 else "bg-rose-500")
+                                    ui.label(f"{score_val:.0f}%").classes(f"text-[10px] font-black px-2 py-0.5 rounded-full text-white {score_bg}")
+
+                                    report_path = r.get("report_path", "")
+                                    with ui.row().classes("items-center gap-1"):
+                                        if report_path and Path(report_path).exists():
+                                            def _view_report(p=report_path):
+                                                with ui.dialog() as dlg, ui.card().classes("w-[95vw] max-w-6xl h-[90vh] p-4 bg-white dark:bg-gray-900"):
+                                                    with ui.row().classes("w-full justify-between items-center pb-2 border-b"):
+                                                        ui.label("Compliance Report Preview").classes("font-bold text-lg")
+                                                        ui.button(icon="close", on_click=dlg.close).props("flat round")
+                                                    try:
+                                                        html_content = Path(p).read_text(encoding="utf-8")
+                                                        ui.html(html_content).classes("w-full h-full overflow-auto")
+                                                    except Exception as err:
+                                                        ui.label(f"Could not load report content: {err}")
+                                                dlg.open()
+
+                                            ui.button(icon="visibility", on_click=_view_report).props("flat round color=primary size=sm")
+                                            
+                                            def _dl_report(p=report_path):
+                                                ui.download(p)
+                                            ui.button(icon="download", on_click=_dl_report).props("flat round color=positive size=sm")
+
+                    _refresh_vault_list()
+
+                # Model Selection card (Admin Only)
+                if is_admin:
+                    with _card():
+                        ui.label("Model Selection (Admin Override)").classes("text-lg font-semibold")
+                        ui.label("Configure active LLM model:").classes("text-sm").style(f"color: {MUTED}")
+                        
+                        cfg = config_manager.load_config()
+                        configured_model = cfg.get("model", config_manager.DEFAULT_MODEL)
+                        
+                        options = PRESET_MODELS
+                        if configured_model not in options:
+                            options.append(configured_model)
+                            
+                        def _on_model_change(e):
+                            if e.value:
+                                state.manual_model_select = True
+
+                        model_dropdown = ui.select(
+                            options=options,
+                            value=configured_model,
+                            on_change=_on_model_change
+                        ).props('style="width: 100%; font-size: 16px;"').classes("w-full")
+                        
+                        recommendation_label = ui.label("Default: gemini-3.6-flash").classes("text-xs mt-1").style(
+                            f"color: {MUTED}; font-style: italic;"
+                        )
+                else:
+                    model_dropdown = None
+                    recommendation_label = None
+
 
                 # Run + Cancel buttons
                 with ui.row().classes("w-full gap-2"):
@@ -1144,8 +1198,23 @@ def _run_blocking(
             "total": len(report.criteria),
             "gaps": len(report.gaps),
         }
+
+        # Record in database for user history
+        try:
+            auth.record_audit_run(
+                user_id=getattr(state, "active_user_id", 1),
+                username=getattr(state, "active_username", "admin"),
+                rfp_filename=Path(rfp_path).name,
+                status="COMPLETED",
+                score=report.overall_score,
+                report_path=paths["html"],
+            )
+        except Exception as db_err:
+            logger.error("Error recording audit run in DB: %s", db_err)
+
         _log("")
         _log("Compliance check complete")
+
 
     except Exception as exc:
         state.error = str(exc)
@@ -1607,9 +1676,8 @@ async def _run_async():
 
 def main():
     ui.run(
-        root=build_ui,
         title="CheckMate — RFP Compliance Checker Web",
-        favicon="CheckMate",
+        favicon="✅",
         dark=False,
         reload=False,
         native=False,
@@ -1617,6 +1685,8 @@ def main():
         host="0.0.0.0",
         port=8765,
     )
+
+
 
 
 if __name__ == "__main__":
