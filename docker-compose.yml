@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  checkmate-web:
+    build: .
+    container_name: checkmate-web
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    environment:
+      - CHECKMATE_SECRET_KEY=${CHECKMATE_SECRET_KEY:-super_secret_production_key_change_me}
+      - CHECKMATE_API_KEY=${CHECKMATE_API_KEY:-}
+      - CHECKMATE_MODEL=${CHECKMATE_MODEL:-opencode/deepseek-v4-flash-free}
+      - CHECKMATE_BASE_URL=${CHECKMATE_BASE_URL:-https://opencode.ai/zen/v1}
+    volumes:
+      - checkmate-data:/root/.bod
+      - checkmate-reports:/app/recovered_reports
+
+volumes:
+  checkmate-data:
+  checkmate-reports:

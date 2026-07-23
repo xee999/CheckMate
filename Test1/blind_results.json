@@ -1,0 +1,32 @@
+{
+  "run_id": "checkmate-run-001",
+  "results": [
+    {
+      "id": "C1",
+      "clause_num": "1.1",
+      "actual_status": "compliant",
+      "actual_evidence_keywords": ["uptime", "99.9%", "redundancy", "active-active", "SLA"],
+      "actual_intention_type": "verified_proof",
+      "confidence": 0.95,
+      "reasoning": "The bidder fully addressed all aspects of the clause, providing specific architectural details for redundancy, the required 99.9% uptime guarantee, and a clear service credit schedule referenced in an attached SLA document (SLA-2025-114)."
+    },
+    {
+      "id": "C2",
+      "clause_num": "1.2",
+      "actual_status": "partial",
+      "actual_evidence_keywords": ["outstanding", "support", "fast", "response", "committed"],
+      "actual_intention_type": "vague_promise",
+      "confidence": 0.85,
+      "reasoning": "The bidder addressed the clause topic by stating a commitment to outstanding support and fast response times. However, the response lacks any specific, measurable SLAs, metrics, or verifiable proof (e.g., response time guarantees, support tiers, historical data) to substantiate these claims, relying instead on vague promises and generic statements."
+    },
+    {
+      "id": "C3",
+      "clause_num": "1.3",
+      "actual_status": "non_compliant",
+      "actual_evidence_keywords": ["Insert", "27001", "certificate", "TBD", "Annex"],
+      "actual_intention_type": "blank_template",
+      "confidence": 0.95,
+      "reasoning": "The bidder failed to submit the mandatory ISO 27001 certificate, providing only placeholder text ('[Insert ISO 27001 certificate number and issuing body here]') and indicating 'TBD' for compliance status. This directly contradicts the RFP's explicit requirement for a valid certificate at submission."
+    }
+  ]
+}

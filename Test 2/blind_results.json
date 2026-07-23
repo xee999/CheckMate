@@ -1,0 +1,47 @@
+{
+  "run_id": "checkmate-test2-run-001",
+  "results": [
+    {
+      "id": "C1",
+      "clause_num": "1.1 (C1)",
+      "actual_status": "partial",
+      "actual_evidence_keywords": [
+        "uptime",
+        "99.9%",
+        "redundancy",
+        "failover",
+        "sla"
+      ],
+      "actual_intention_type": "vague_promise",
+      "confidence": 0.85,
+      "reasoning": "The bidder guarantees the required 99.9% uptime and lists relevant technical and operational controls, also referring to an SLA with service credits. However, the response does not explicitly address the RFP's condition regarding scheduled maintenance windows not exceeding four (4) hours per month."
+    },
+    {
+      "id": "C2",
+      "clause_num": "1.2 (C2)",
+      "actual_status": "partial",
+      "actual_evidence_keywords": [
+        "support",
+        "outstanding"
+      ],
+      "actual_intention_type": "vague_promise",
+      "confidence": 0.85,
+      "reasoning": "The bidder engaged with the requirement by stating a commitment to customer support and fast responses. However, the response is generic and lacks specific details on the support approach, communication channels, customer engagement model, or any measurable metrics or SLAs, as required by the RFP."
+    },
+    {
+      "id": "C3",
+      "clause_num": "1.3 (C3)",
+      "actual_status": "non_compliant",
+      "actual_evidence_keywords": [
+        "encryption",
+        "iso/iec 27001",
+        "compliance",
+        "insert",
+        "negotiations"
+      ],
+      "actual_intention_type": "blank_template",
+      "confidence": 0.95,
+      "reasoning": "The bidder provided placeholder text for ISO/IEC 27001 compliance and stated encryption details would be 'To be completed during contract negotiations', failing to provide the mandatory documentary evidence in the proposal as required."
+    }
+  ]
+}

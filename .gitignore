@@ -1,0 +1,17 @@
+temp/
+__pycache__/
+*.pyc
+*.pyo
+.env
+dist/
+build/
+*.spec
+*.dmg
+*.exe
+playwright/
+*.db
+.secret_key
+.DS_Store
+server.log
+recovered_reports/
+

@@ -1,0 +1,16 @@
+<svg width="400" height="200" viewBox="0 0 400 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Stratum AI Theme - CheckMate Background-Free Vector Logo -->
+  <!-- Dark Squircle Icon Container -->
+  <rect x="10" y="10" width="180" height="180" rx="44" fill="#0B090A"/>
+  
+  <!-- Neon Lime Bold Checkmark -->
+  <path d="M52 102L84 134L148 66" stroke="#CCF458" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- "CheckMate" Heading Text -->
+  <text x="215" y="75" fill="#0B090A" font-family="Outfit, Inter, -apple-system, sans-serif" font-weight="800" font-size="52" letter-spacing="-1.5">Check</text>
+  <text x="215" y="130" fill="#0B090A" font-family="Outfit, Inter, -apple-system, sans-serif" font-weight="800" font-size="52" letter-spacing="-1.5">Mate</text>
+  
+  <!-- Pill Badge "RFP COMPLIANCE" -->
+  <rect x="215" y="148" width="170" height="34" rx="17" fill="#E6FA95" fill-opacity="0.8"/>
+  <text x="300" y="170" fill="#34970D" font-family="Outfit, Inter, -apple-system, sans-serif" font-weight="800" font-size="14" letter-spacing="1.5" text-anchor="middle">RFP COMPLIANCE</text>
+</svg>
