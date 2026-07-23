@@ -860,10 +860,12 @@ def build_ui():
                         ).props('style="font-size: 16px; flex: 1;"').classes("flex-1")
 
 
-                        def _browse_rfp_file():
+                        async def _browse_rfp_file():
                             import subprocess as _sp
+                            import asyncio
                             try:
-                                res = _sp.run(
+                                res = await asyncio.to_thread(
+                                    _sp.run,
                                     ["osascript", "-e",
                                      'set p to POSIX path of '
                                      '(choose file with prompt "Select RFP Document File")'],
@@ -871,16 +873,19 @@ def build_ui():
                                 )
                                 path = res.stdout.strip()
                                 if path:
+                                    rfp_input.value = path
                                     rfp_input.set_value(path)
                                     rfp_input.update()
                                     _load_rfp(path)
                             except Exception:
                                 ui.notification("Paste the file path manually.", type="info")
 
-                        def _browse_rfp_folder():
+                        async def _browse_rfp_folder():
                             import subprocess as _sp
+                            import asyncio
                             try:
-                                res = _sp.run(
+                                res = await asyncio.to_thread(
+                                    _sp.run,
                                     ["osascript", "-e",
                                      'POSIX path of '
                                      '(choose folder with prompt "Select RFP Documents Folder")'],
@@ -888,6 +893,7 @@ def build_ui():
                                 )
                                 path = res.stdout.strip()
                                 if path:
+                                    rfp_input.value = path
                                     rfp_input.set_value(path)
                                     rfp_input.update()
                                     _load_rfp(path)
@@ -916,10 +922,12 @@ def build_ui():
                             on_change=lambda e: (setattr(state, "sub_path", e.value), _update_run_btn())
                         ).props('style="font-size: 16px; flex: 1;"').classes("flex-1")
 
-                        def _browse_folder():
+                        async def _browse_folder():
                             import subprocess as _sp
+                            import asyncio
                             try:
-                                res = _sp.run(
+                                res = await asyncio.to_thread(
+                                    _sp.run,
                                     ["osascript", "-e",
                                      'POSIX path of '
                                      '(choose folder with prompt "Select submission folder")'],
@@ -927,6 +935,7 @@ def build_ui():
                                 )
                                 path = res.stdout.strip()
                                 if path:
+                                    sub_input.value = path
                                     sub_input.set_value(path)
                                     sub_input.update()
                                     setattr(state, "sub_path", path)
@@ -937,6 +946,7 @@ def build_ui():
                                 )
 
                         _small_btn("Browse", MUTED, _browse_folder)
+
 
 
             # ── Right column ──────────────────────────────────────
