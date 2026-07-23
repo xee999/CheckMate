@@ -86,7 +86,8 @@ def render_admin_console(user_session: dict, on_navigate_workspace) -> None:
                         value=current_key,
                         password=True,
                         password_toggle_button=True,
-                    ).classes("w-full")
+                    ).props("type=password password-toggle-button").classes("w-full")
+
 
                     # Model selection dropdown (Admin only)
                     model_select = ui.select(

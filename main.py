@@ -649,12 +649,8 @@ def build_ui():
                     ui.notify("Invalid username or password.", type="negative")
 
             ui.button("Sign In", icon="login", on_click=do_login).props("color=primary").classes("w-full py-3 text-base font-semibold")
-            
-            with ui.column().classes("w-full mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-600 border"):
-                ui.label("Default Admin Login:").classes("font-bold")
-                ui.label("Username: admin")
-                ui.label("Password: AdminPassword123!")
         return
+
 
     is_admin = user_session.get("role") == "admin"
     state.active_user_id = user_session.get("id", 1)
@@ -705,7 +701,8 @@ def build_ui():
             api_key_input = ui.input(
                 placeholder="Paste your API key here...",
                 value=saved_cfg.get("api_key", ""),
-            ).props("type=password").classes("w-full mb-4")
+            ).props("type=password password-toggle-button").classes("w-full mb-4")
+
 
             ui.label("Model Name").classes("text-sm font-semibold").style(
                 f"color: {INK}"
