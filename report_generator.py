@@ -178,8 +178,8 @@ def generate_html(report: ComplianceReport) -> str:
         --font-title: 'Outfit', -apple-system, sans-serif;
         --font-body: 'Outfit', -apple-system, sans-serif;
         
-        /* Stratum AI Design System Palette */
-        --bg-body: #F1F4EE;
+        /* CheckMate 2026 Executive Palette */
+        --bg-body: #F4F6F2;
         --bg-paper: #FFFFFF;
         --bg-slate: #EFEFEF;
         --border-color: #E0E5DC;
@@ -189,11 +189,12 @@ def generate_html(report: ComplianceReport) -> str:
         --text-light: #718096;
         
         --accent-lime: #CCF458;
-        --accent-forest: #34970D;
+        --accent-forest: #10B981;
+        --accent-dark: #0F172A;
         
-        --color-compliant: #34970D;
-        --bg-compliant: #F4FCE8;
-        --border-compliant: #CCF458;
+        --color-compliant: #10B981;
+        --bg-compliant: #ECFDF5;
+        --border-compliant: #A7F3D0;
         
         --color-partial: #D97706;
         --bg-partial: #FFFBEB;
@@ -208,7 +209,7 @@ def generate_html(report: ComplianceReport) -> str:
         --border-unchecked: #E2E8F0;
 
         --shadow-sm: 0 4px 20px -2px rgba(11, 9, 10, 0.04);
-        --shadow-md: 0 10px 30px -4px rgba(11, 9, 10, 0.06);
+        --shadow-md: 0 10px 30px -4px rgba(11, 9, 10, 0.08);
     }}
 
     * {{
@@ -217,36 +218,50 @@ def generate_html(report: ComplianceReport) -> str:
         box-sizing: border-box;
     }}
 
-    body.dark {{
-        --bg-body: #090D16;
-        --bg-paper: #111827;
-        --bg-slate: #1F2937;
-        --border-color: #374151;
-        
-        --text-dark: #F9FAFB;
-        --text-muted: #D1D5DB;
-        --text-light: #9CA3AF;
-        
-        --bg-compliant: #064E3B;
-        --border-compliant: #047857;
-        
-        --bg-partial: #78350F;
-        --border-partial: #B45309;
-        
-        --bg-noncompliant: #7F1D1D;
-        --border-noncompliant: #B91C1C;
-        
-        --bg-unchecked: #1F2937;
-        --border-unchecked: #4B5563;
-    }}
-
     body {{
         font-family: var(--font-body);
-        font-size: 18px;
+        font-size: 17px;
         background-color: var(--bg-body);
         color: var(--text-dark);
         line-height: 1.6;
         padding: 40px 24px;
+    }}
+
+    /* Cover Header Styling */
+    .report-header {{
+        background: linear-gradient(135deg, #0B090A 0%, #0F172A 60%, #1E293B 100%);
+        color: #FFFFFF;
+        padding: 48px;
+        border-radius: 24px;
+        box-shadow: 0 20px 40px -10px rgba(11, 9, 10, 0.3);
+        margin-bottom: 32px;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(204, 244, 88, 0.25);
+    }}
+
+    .header-accent {{
+        position: absolute;
+        top: -60px;
+        right: -60px;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(204, 244, 88, 0.15) 0%, transparent 70%);
+        border-radius: 50%;
+    }}
+
+    .project-tag {{
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.15em;
+        font-weight: 800;
+        color: #CCF458;
+        background-color: rgba(204, 244, 88, 0.15);
+        padding: 4px 12px;
+        border-radius: 9999px;
+        border: 1px solid rgba(204, 244, 88, 0.3);
+        margin-bottom: 14px;
+        display: inline-block;
     }}
 
     /* Scorecard Commentary Table & Markdown Styling */
@@ -796,12 +811,13 @@ def generate_html(report: ComplianceReport) -> str:
             <!-- CheckMate Logo in Top Right -->
             <div style="display: flex; flex-direction: column; align-items: flex-end; text-align: right; flex-shrink: 0; margin-top: 10px;">
                 <svg width="48" height="48" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 8px;">
-                  <rect x="2" y="4" width="24" height="20" rx="4" stroke="#38BDF8" stroke-width="2.5" fill="none"/>
-                  <path d="M8 14l4 4 8-9" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <rect x="2" y="4" width="24" height="20" rx="8" fill="#0B090A"/>
+                  <path d="M8 14l4 4 8-9" stroke="#CCF458" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 <div style="font-weight: 800; font-size: 1.2rem; color: #FFFFFF; letter-spacing: 0.05em; text-transform: uppercase; line-height: 1;">CheckMate</div>
-                <div style="font-size: 0.65rem; color: #94A3B8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px;">Compliance Checker</div>
+                <div style="font-size: 0.65rem; color: #CCF458; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px;">Powered by Jazz Enterprise AI</div>
             </div>
+
         </div>
         
         <div class="header-meta-grid">
@@ -842,11 +858,12 @@ def generate_html(report: ComplianceReport) -> str:
     <!-- SCORECARD PANEL -->
     <div id="scorecard" class="tab-pane active">
         <div class="scorecard-grid">
-            <div class="score-circle-card">
+            <div class="score-circle-card" style="background: linear-gradient(135deg, #0F172A 0%, #0B090A 100%); color: #FFFFFF; border: 1px solid rgba(204, 244, 88, 0.35); box-shadow: 0 15px 35px rgba(0,0,0,0.2);">
                 <div class="score-badge {score_tier}">{score_label}</div>
-                <div class="score-number" style="color: {score_color};">{report.overall_score:.0f}%</div>
-                <p class="score-explain">Overall compliance status rating of the submitted bid proposals relative to the RFP specifications.</p>
+                <div class="score-number" style="color: #CCF458; text-shadow: 0 0 20px rgba(204, 244, 88, 0.4);">{report.overall_score:.0f}%</div>
+                <p class="score-explain" style="color: #94A3B8;">Overall compliance status rating of the submitted bid proposals relative to the RFP specifications.</p>
             </div>
+
             
             <div class="metrics-card">
                 <h3 style="margin-bottom: 20px; font-weight: 700;">Response Distribution Summary</h3>

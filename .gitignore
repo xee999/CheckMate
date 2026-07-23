@@ -15,5 +15,6 @@ playwright/
 .DS_Store
 server.log
 recovered_reports/
-
-
+.nicegui/
+.venv/
+venv/

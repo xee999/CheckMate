@@ -22,6 +22,8 @@ from queue import Queue
 from typing import Optional
 
 from nicegui import app, ui
+import urllib.parse
+from fastapi.responses import FileResponse
 
 import config_manager
 import pdf_extractor
@@ -30,6 +32,32 @@ from compliance_engine import ComplianceEngine, BodError
 from report_generator import save_reports
 import auth
 import admin_console
+
+@app.get("/api/report_file")
+def get_report_file_endpoint(path: str):
+    p = Path(path)
+    if p.exists() and p.is_file():
+        return FileResponse(str(p), media_type="text/html")
+    return {"error": "Report file not found"}
+
+
+def _view_report_dialog(report_path: str):
+    if not report_path or not Path(report_path).exists():
+        ui.notification("Report file not found.", type="negative")
+        return
+    
+    encoded_path = urllib.parse.quote(str(report_path))
+    with ui.dialog() as dlg, ui.card().classes("w-[95vw] max-w-6xl h-[90vh] p-4 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl"):
+        with ui.row().classes("w-full justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700"):
+            with ui.row().classes("items-center gap-2"):
+                ui.label("📊 Compliance Evaluation Report").classes("font-bold text-lg text-gray-900 dark:text-white")
+                ui.label(Path(report_path).name).classes("text-xs px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-mono")
+            with ui.row().classes("items-center gap-2"):
+                ui.button("Download HTML", icon="download", on_click=lambda: ui.download(report_path)).props("flat color=primary size=sm")
+                ui.button(icon="close", on_click=dlg.close).props("flat round color=grey")
+        ui.element('iframe').props(f'src="/api/report_file?path={encoded_path}" style="width:100%; height:78vh; border:none; border-radius:12px;"').classes("w-full h-full")
+    dlg.open()
+
 
 # ── Logging ────────────────────────────────────────────────────────
 
@@ -79,6 +107,8 @@ class State:
     show_admin: bool = False
     rfp_path: Optional[str] = None
     rfp_filename: Optional[str] = None
+    sub_path: Optional[str] = None
+    out_dir_path: Optional[str] = None
     running: bool = False
     cancel_requested: bool = False
     error: Optional[str] = None
@@ -97,22 +127,27 @@ class State:
     active_username: str = "admin"
 
 
-
 state = State()
 state.show_config = False
-
 
 
 # ── Globals populated during UI build ──────────────────────────────
 
 log_scroll: Optional[ui.scroll_area] = None
 log_column: Optional[ui.column] = None
+narrated_column: Optional[ui.column] = None
+narrated_scroll: Optional[ui.scroll_area] = None
 main_btn: Optional[ui.button] = None
 sub_input: Optional[ui.input] = None
 out_dir_input: Optional[ui.input] = None
 rfp_input: Optional[ui.input] = None
 rfp_label: Optional[ui.label] = None
 result_container: Optional[ui.column] = None
+live_progress_label: Optional[ui.label] = None
+progress_bar: Optional[ui.linear_progress] = None
+elapsed_badge: Optional[ui.label] = None
+vault_list_container: Optional[ui.column] = None
+
 html_link: Optional[ui.html] = None
 open_btn: Optional[ui.button] = None
 cfg_container: Optional[ui.column] = None
@@ -289,6 +324,21 @@ def _eval_log(msg: str):
 
 
 def _poll():
+    global live_progress_label, elapsed_badge, progress_bar
+    
+    if state.log_entries and live_progress_label is not None:
+        latest_msg = state.log_entries[-1]
+        live_progress_label.set_text(latest_msg)
+        if "Assessed" in latest_msg and "of" in latest_msg:
+            try:
+                parts = latest_msg.split("Assessed ")[1].split(" of ")
+                cur_num = float(parts[0])
+                tot_num = float(parts[1].split(" ")[0])
+                if tot_num > 0 and progress_bar is not None:
+                    progress_bar.set_value(cur_num / tot_num)
+            except Exception:
+                pass
+
     if log_column is not None:
         while not state.q.empty():
             msg = state.q.get_nowait()
@@ -325,6 +375,7 @@ def _poll():
 
 
 def _heartbeat():
+    global elapsed_badge
     if orb_element is not None:
         if state.running:
             orb_element.content = '<div class="orb-pulse"></div>'
@@ -337,33 +388,55 @@ def _heartbeat():
     mins = state.elapsed_seconds // 60
     secs = state.elapsed_seconds % 60
 
+    if elapsed_badge is not None:
+        elapsed_badge.set_text(f"{state.elapsed_seconds}s elapsed ({mins}m {secs:02d}s)")
+
     now = time.time()
     quiet = now - state.last_log_time
     if quiet > 20 and int(quiet) % 5 == 0:
         _log(f"   Still working\u2026 ({mins}m {secs:02d}s elapsed)")
 
 
+
 def _load_rfp(path: str):
     global rfp_label
     p = Path(path)
     if not p.exists():
-        ui.notification("File not found", type="negative")
+        ui.notification(f"File or directory not found: {path}", type="negative")
         return False
+    
+    if p.is_dir():
+        state.rfp_path = str(p)
+        state.rfp_filename = p.name
+        if rfp_label:
+            rfp_label.set_text(f"Loaded RFP Folder: {p.name}")
+        ui.notification(f"RFP Folder loaded: {p.name}", type="positive")
+        return True
+
     ext = p.suffix.lower()
     if ext not in SUPPORTED_EXTENSIONS:
         ui.notification(f"Unsupported file type: {ext}", type="negative")
         return False
-    temp_dir = Path.home() / ".bod" / "uploads"
-    temp_dir.mkdir(parents=True, exist_ok=True)
-    dest = temp_dir / p.name
-    import shutil
-    shutil.copy2(str(p), str(dest))
-    state.rfp_path = str(dest)
-    state.rfp_filename = p.name
-    if rfp_label:
-        rfp_label.set_text(f"Loaded: {p.name}")
-    ui.notification(f"RFP loaded: {p.name}", type="positive")
-    return True
+
+    try:
+        temp_dir = Path(__file__).parent / ".bod_data" / "uploads"
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        dest = temp_dir / p.name
+        import shutil
+        shutil.copy2(str(p), str(dest))
+        state.rfp_path = str(dest)
+        state.rfp_filename = p.name
+        if rfp_label:
+            rfp_label.set_text(f"Loaded: {p.name}")
+        ui.notification(f"RFP loaded: {p.name}", type="positive")
+        return True
+    except Exception as exc:
+        msg = f"Failed to access RFP file: {exc}"
+        logger.error("%s", msg)
+        ui.notification(msg, type="negative")
+        _log(f"Error: {msg}")
+        return False
+
 
 
 def _stat_badge(text: str, color: str, label: str):
@@ -591,11 +664,13 @@ def build_ui():
     # ═══════════════════════════════════════════════════════════════
     # SCREEN 0 — Admin Management Console
     # ═══════════════════════════════════════════════════════════════
-    admin_container = ui.column().classes("w-full max-w-7xl mx-auto p-4").bind_visibility_from(state, "show_admin")
-    with admin_container:
-        def _nav_workspace():
-            state.show_admin = False
-        admin_console.render_admin_console(user_session, _nav_workspace)
+    if is_admin:
+        admin_container = ui.column().classes("w-full max-w-7xl mx-auto p-4").bind_visibility_from(state, "show_admin")
+        with admin_container:
+            def _nav_workspace():
+                state.show_admin = False
+            admin_console.render_admin_console(user_session, _nav_workspace)
+
 
     # ═══════════════════════════════════════════════════════════════
     # SCREEN 1 — Configuration (Admin Only)
@@ -729,8 +804,47 @@ def build_ui():
             "text-xs font-bold tracking-wide"
         ).style(f"color: {FOREST}; letter-spacing: 0.5px;")
 
+        # ── 1. LIVE PROGRESS HERO CARD (Shows when state.running is True) ────────
+        run_banner = ui.card().classes(
+            "w-full mt-4 p-5 bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-white rounded-2xl shadow-2xl border border-emerald-500/40"
+        ).bind_visibility_from(state, "running")
+        with run_banner:
+            with ui.row().classes("w-full items-center justify-between mb-2"):
+                with ui.row().classes("items-center gap-3"):
+                    ui.spinner("dots", size="md", color="lime")
+                    with ui.column().classes("gap-0"):
+                        ui.label("⚡ Compliance Audit Engine Active").classes("text-base font-extrabold text-lime-400 tracking-wide")
+                        live_progress_label = ui.label("Analyzing RFP and proposal documents with Gemini 3.6 Flash...").classes("text-xs text-emerald-200/90 font-mono")
+                
+                with ui.row().classes("items-center gap-3"):
+                    elapsed_badge = ui.label(f"{state.elapsed_seconds}s elapsed").classes("text-xs font-mono font-bold px-3 py-1 rounded-full bg-emerald-500/20 text-lime-300 border border-lime-400/30")
+                    def _cancel_run_banner():
+                        state.cancel_requested = True
+                        ui.notification("Cancellation requested...", type="warning")
+                    ui.button("Cancel Run", icon="stop", on_click=_cancel_run_banner).props("flat color=negative size=sm").classes("bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 rounded-lg px-2 py-1")
+
+            progress_bar = ui.linear_progress(value=0.15).props("color=lime stripe animated").classes("w-full h-2 rounded-full mt-2")
+
+        # ── 2. HERO COMPLETION BANNER (Shows when summary is ready) ──────────────
+        completion_banner = ui.card().classes(
+            "w-full mt-4 p-5 bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 text-white rounded-2xl shadow-2xl border border-lime-400/50"
+        ).bind_visibility_from(state, "summary", lambda s: bool(s) and not state.running)
+        with completion_banner:
+            with ui.row().classes("w-full items-center justify-between"):
+                with ui.row().classes("items-center gap-3"):
+                    ui.html('''<div class="w-10 h-10 rounded-full bg-lime-400/20 border border-lime-400 flex items-center justify-center text-lime-400 font-extrabold text-xl">✓</div>''')
+                    with ui.column().classes("gap-0"):
+                        ui.label("🎉 Compliance Check Completed!").classes("text-lg font-extrabold text-white tracking-wide")
+                        ui.label("Your full compliance evaluation artifact and score are ready.").classes("text-xs text-emerald-200/90")
+                
+                with ui.row().classes("items-center gap-2"):
+                    if state.html_report and Path(state.html_report).exists():
+                        ui.button("View Full Report", icon="visibility", on_click=lambda: _view_report_dialog(state.html_report)).props("unelevated").classes("bg-lime-400 text-slate-950 font-bold px-4 py-2 rounded-xl hover:bg-lime-300 transition-all text-xs")
+                        ui.button("Download HTML", icon="download", on_click=lambda: ui.download(state.html_report)).props("outlined color=lime").classes("rounded-xl px-3 py-2 text-xs")
+
         # ── Two-column layout ─────────────────────────────────────
         with ui.row().classes("w-full gap-6 mt-4"):
+
             # ── Left column ───────────────────────────────────────
             with ui.column().classes("flex-1 gap-6 min-w-0"):
                 # RFP document card
@@ -743,7 +857,10 @@ def build_ui():
                     with ui.row().classes("w-full items-center gap-2"):
                         rfp_input = ui.input(
                             placeholder="Path to RFP file or folder...",
+                            value=state.rfp_path or "",
+                            on_change=lambda e: setattr(state, "rfp_path", e.value)
                         ).props('style="font-size: 16px; flex: 1;"').classes("flex-1")
+
 
                         def _browse_rfp_file():
                             import subprocess as _sp
@@ -795,6 +912,8 @@ def build_ui():
                     with ui.row().classes("w-full items-center gap-2"):
                         sub_input = ui.input(
                             placeholder="Paste full path to submission folder...",
+                            value=getattr(state, "sub_path", "") or "",
+                            on_change=lambda e: setattr(state, "sub_path", e.value)
                         ).props('style="font-size: 16px; flex: 1;"').classes("flex-1")
 
                         def _browse_folder():
@@ -809,6 +928,7 @@ def build_ui():
                                 path = res.stdout.strip()
                                 if path:
                                     sub_input.value = path
+                                    setattr(state, "sub_path", path)
                             except Exception:
                                 ui.notification(
                                     "Paste the folder path manually.", type="info"
@@ -826,7 +946,10 @@ def build_ui():
                     with ui.row().classes("w-full items-center gap-2"):
                         out_dir_input = ui.input(
                             placeholder="Defaults to submission folder...",
+                            value=getattr(state, "out_dir_path", "") or "",
+                            on_change=lambda e: setattr(state, "out_dir_path", e.value)
                         ).props('style="font-size: 16px; flex: 1;"').classes("flex-1")
+
 
                         def _browse_out_dir():
                             import subprocess as _sp
@@ -873,42 +996,38 @@ def build_ui():
                         runs = auth.list_audit_runs(user_id=state.active_user_id)
                         if not runs:
                             with vault_list_container:
-                                ui.label("No saved reports yet. Run a compliance check to generate outputs.").classes("text-xs text-gray-400 italic p-4 text-center w-full")
+                                ui.label("No saved reports yet. Run a compliance check to generate outputs.").classes("text-xs text-gray-400 italic p-6 text-center w-full")
                             return
 
                         with vault_list_container:
                             for r in runs:
-                                with ui.row().classes("w-full items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/60 dark:border-gray-600/60 hover:border-emerald-500/50 transition-all"):
-                                    with ui.column().classes("gap-0 flex-1 min-w-0 pr-2"):
-                                        ui.label(r["rfp_filename"]).classes("font-semibold text-xs truncate text-gray-900 dark:text-gray-100")
-                                        ui.label(r["created_at"][:19].replace("T", " ")).classes("text-[10px] text-gray-400")
+                                score_val = r.get("score", 0.0)
+                                score_bg = "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30" if score_val >= 80 else ("bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30" if score_val >= 50 else "bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/30")
+                                rfp_name = r.get("rfp_filename", "RFP Document")
+                                created_str = r.get("created_at", "")[:16].replace("T", " ")
+                                report_path = r.get("report_path", "")
 
-                                    score_val = r.get("score", 0.0)
-                                    score_bg = "bg-emerald-500" if score_val >= 80 else ("bg-amber-500" if score_val >= 50 else "bg-rose-500")
-                                    ui.label(f"{score_val:.0f}%").classes(f"text-[10px] font-black px-2 py-0.5 rounded-full text-white {score_bg}")
+                                with ui.row().classes("w-full items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/70 dark:border-gray-600/70 hover:border-emerald-500 transition-all shadow-xs mb-1.5"):
+                                    with ui.column().classes("gap-0.5 flex-1 min-w-0 pr-2"):
+                                        with ui.row().classes("items-center gap-1.5"):
+                                            ui.label("📁").classes("text-xs")
+                                            ui.label(rfp_name).classes("font-bold text-xs truncate text-gray-900 dark:text-gray-100")
+                                        ui.label(f"Date: {created_str} \u00b7 User: {r.get('username', 'admin')}").classes("text-[10px] text-gray-400 font-mono")
 
-                                    report_path = r.get("report_path", "")
+                                    ui.label(f"{score_val:.0f}% Compliant").classes(f"text-[10px] font-black px-2.5 py-0.5 rounded-full border {score_bg} mr-2")
+
                                     with ui.row().classes("items-center gap-1"):
                                         if report_path and Path(report_path).exists():
-                                            def _view_report(p=report_path):
-                                                with ui.dialog() as dlg, ui.card().classes("w-[95vw] max-w-6xl h-[90vh] p-4 bg-white dark:bg-gray-900"):
-                                                    with ui.row().classes("w-full justify-between items-center pb-2 border-b"):
-                                                        ui.label("Compliance Report Preview").classes("font-bold text-lg")
-                                                        ui.button(icon="close", on_click=dlg.close).props("flat round")
-                                                    try:
-                                                        html_content = Path(p).read_text(encoding="utf-8")
-                                                        ui.html(html_content).classes("w-full h-full overflow-auto")
-                                                    except Exception as err:
-                                                        ui.label(f"Could not load report content: {err}")
-                                                dlg.open()
-
-                                            ui.button(icon="visibility", on_click=_view_report).props("flat round color=primary size=sm")
+                                            def _view_rep_cb(p=report_path):
+                                                _view_report_dialog(p)
+                                            ui.button(icon="visibility", on_click=_view_rep_cb).props("flat round color=primary size=sm").tooltip("View Full Report")
                                             
-                                            def _dl_report(p=report_path):
+                                            def _dl_rep_cb(p=report_path):
                                                 ui.download(p)
-                                            ui.button(icon="download", on_click=_dl_report).props("flat round color=positive size=sm")
+                                            ui.button(icon="download", on_click=_dl_rep_cb).props("flat round color=positive size=sm").tooltip("Download HTML")
 
                     _refresh_vault_list()
+
 
                 # Model Selection card (Admin Only)
                 if is_admin:
@@ -919,7 +1038,8 @@ def build_ui():
                         cfg = config_manager.load_config()
                         configured_model = cfg.get("model", config_manager.DEFAULT_MODEL)
                         
-                        options = PRESET_MODELS
+                        options = list(admin_console.PRESET_MODELS)
+
                         if configured_model not in options:
                             options.append(configured_model)
                             
@@ -1451,8 +1571,17 @@ async def _run_async():
 
         cfg = config_manager.load_config()
         api_key = cfg.get("api_key", "")
-        model = model_dropdown.value if model_dropdown else cfg.get("model", config_manager.DEFAULT_MODEL)
+        if not api_key:
+            ui.notification("API Key has not been configured by the Admin yet. Please contact your system administrator.", type="warning")
+            _log("Error: Central API key missing. Admin must configure the API key in the Admin Console.")
+            state.running = False
+            if main_btn is not None:
+                main_btn.enable()
+            return
+
+        model = model_dropdown.value if model_dropdown and model_dropdown.value else cfg.get("model", config_manager.DEFAULT_MODEL)
         base_url = cfg.get("base_url", config_manager.DEFAULT_BASE_URL)
+
 
         out_dir_val = out_dir_input.value.strip() if out_dir_input is not None else ""
 
