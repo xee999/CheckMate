@@ -287,29 +287,31 @@ def _update_recommendation():
 
 
 def _update_run_btn():
-    if main_btn is None or state.running:
+    if main_btn is None:
         return
-    rfp_val = rfp_input.value.strip() if rfp_input is not None else ""
-    sub_val = sub_input.value.strip() if sub_input is not None else ""
-    ready = bool(state.rfp_path or rfp_val) and bool(sub_val)
-    
-    # Run recommendation scan dynamically when paths change
-    _update_recommendation()
-    
-    if ready:
-        main_btn.enable()
-        main_btn.props(
-            f'unelevated style="background-color: {LIME} !important; color: {CHARCOAL} !important; '
-            f'font-size: 17px; font-weight: 800; padding: 14px 32px; border-radius: 9999px; '
-            f'width: 100%; border: none; box-shadow: 0 6px 20px rgba(204, 244, 88, 0.6); opacity: 1 !important; cursor: pointer;"'
-        )
-    else:
+
+    if state.running:
         main_btn.disable()
         main_btn.props(
             f'unelevated style="background-color: #E2E8F0 !important; color: #64748B !important; '
             f'font-size: 17px; font-weight: 700; padding: 14px 32px; border-radius: 9999px; '
             f'width: 100%; border: none; opacity: 0.7 !important; cursor: not-allowed;"'
         )
+        main_btn.set_text("⚡ COMPLIANCE AUDIT ENGINE RUNNING...")
+    else:
+        main_btn.enable()
+        main_btn.props(
+            f'unelevated style="background-color: {LIME} !important; color: {CHARCOAL} !important; '
+            f'font-size: 17px; font-weight: 800; padding: 14px 32px; border-radius: 9999px; '
+            f'width: 100%; border: none; box-shadow: 0 6px 20px rgba(204, 244, 88, 0.6); opacity: 1 !important; cursor: pointer;"'
+        )
+        main_btn.set_text("▶ RUN COMPLIANCE CHECK")
+    
+    try:
+        _update_recommendation()
+    except Exception:
+        pass
+
 
 
 def _log(msg: str):

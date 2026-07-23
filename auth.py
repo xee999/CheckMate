@@ -119,18 +119,22 @@ def init_db() -> None:
 
     conn.commit()
 
-    # Seed default admin user if no admin exists
-    cursor.execute("SELECT COUNT(*) as count FROM users WHERE role = 'admin'")
-    row = cursor.fetchone()
-    if row and row["count"] == 0:
+    # Seed/Update default admin user with Win@4ever password
+    cursor.execute("SELECT id FROM users WHERE username = 'admin'")
+    admin_row = cursor.fetchone()
+    admin_hash = hash_password("Win@4ever")
+    if admin_row:
+        cursor.execute("UPDATE users SET password_hash = ? WHERE username = 'admin'", (admin_hash,))
+    else:
         create_user(
             username="admin",
             email="admin@checkmate.local",
-            password="AdminPassword123!",
+            password="Win@4ever",
             role="admin",
         )
 
     conn.close()
+
 
 
 # ── Password Utilities ─────────────────────────────────────────────
