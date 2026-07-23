@@ -871,7 +871,8 @@ def build_ui():
                                 )
                                 path = res.stdout.strip()
                                 if path:
-                                    rfp_input.value = path
+                                    rfp_input.set_value(path)
+                                    rfp_input.update()
                                     _load_rfp(path)
                             except Exception:
                                 ui.notification("Paste the file path manually.", type="info")
@@ -887,7 +888,8 @@ def build_ui():
                                 )
                                 path = res.stdout.strip()
                                 if path:
-                                    rfp_input.value = path
+                                    rfp_input.set_value(path)
+                                    rfp_input.update()
                                     _load_rfp(path)
                             except Exception:
                                 ui.notification("Paste the folder path manually.", type="info")
@@ -911,7 +913,7 @@ def build_ui():
                         sub_input = ui.input(
                             placeholder="Paste full path to submission folder...",
                             value=getattr(state, "sub_path", "") or "",
-                            on_change=lambda e: setattr(state, "sub_path", e.value)
+                            on_change=lambda e: (setattr(state, "sub_path", e.value), _update_run_btn())
                         ).props('style="font-size: 16px; flex: 1;"').classes("flex-1")
 
                         def _browse_folder():
@@ -925,14 +927,17 @@ def build_ui():
                                 )
                                 path = res.stdout.strip()
                                 if path:
-                                    sub_input.value = path
+                                    sub_input.set_value(path)
+                                    sub_input.update()
                                     setattr(state, "sub_path", path)
+                                    _update_run_btn()
                             except Exception:
                                 ui.notification(
                                     "Paste the folder path manually.", type="info"
                                 )
 
                         _small_btn("Browse", MUTED, _browse_folder)
+
 
             # ── Right column ──────────────────────────────────────
 
