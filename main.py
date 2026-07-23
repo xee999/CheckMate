@@ -854,10 +854,8 @@ def build_ui():
 
                     with ui.row().classes("w-full items-center gap-2"):
                         rfp_input = ui.input(
-                            placeholder="Path to RFP file or folder...",
-                            value=state.rfp_path or "",
-                            on_change=lambda e: setattr(state, "rfp_path", e.value)
-                        ).props('style="font-size: 16px; flex: 1;"').classes("flex-1")
+                            placeholder="Path to RFP file or folder..."
+                        ).bind_value(state, "rfp_path").props('style="font-size: 16px; flex: 1;"').classes("flex-1")
 
 
                         async def _browse_rfp_file():
@@ -873,10 +871,12 @@ def build_ui():
                                 )
                                 path = res.stdout.strip()
                                 if path:
+                                    state.rfp_path = path
                                     rfp_input.value = path
-                                    rfp_input.set_value(path)
+                                    rfp_input.run_method('update:modelValue', path)
                                     rfp_input.update()
                                     _load_rfp(path)
+                                    _update_run_btn()
                             except Exception:
                                 ui.notification("Paste the file path manually.", type="info")
 
@@ -893,10 +893,12 @@ def build_ui():
                                 )
                                 path = res.stdout.strip()
                                 if path:
+                                    state.rfp_path = path
                                     rfp_input.value = path
-                                    rfp_input.set_value(path)
+                                    rfp_input.run_method('update:modelValue', path)
                                     rfp_input.update()
                                     _load_rfp(path)
+                                    _update_run_btn()
                             except Exception:
                                 ui.notification("Paste the folder path manually.", type="info")
 
@@ -917,10 +919,8 @@ def build_ui():
 
                     with ui.row().classes("w-full items-center gap-2"):
                         sub_input = ui.input(
-                            placeholder="Paste full path to submission folder...",
-                            value=getattr(state, "sub_path", "") or "",
-                            on_change=lambda e: (setattr(state, "sub_path", e.value), _update_run_btn())
-                        ).props('style="font-size: 16px; flex: 1;"').classes("flex-1")
+                            placeholder="Paste full path to submission folder..."
+                        ).bind_value(state, "sub_path").props('style="font-size: 16px; flex: 1;"').classes("flex-1")
 
                         async def _browse_folder():
                             import subprocess as _sp
