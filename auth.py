@@ -125,6 +125,7 @@ def init_db() -> None:
     admin_hash = hash_password("Win@4ever")
     if admin_row:
         cursor.execute("UPDATE users SET password_hash = ? WHERE username = 'admin'", (admin_hash,))
+        conn.commit()
     else:
         create_user(
             username="admin",
@@ -134,6 +135,7 @@ def init_db() -> None:
         )
 
     conn.close()
+
 
 
 

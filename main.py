@@ -934,41 +934,8 @@ def build_ui():
 
                         _small_btn("Browse", MUTED, _browse_folder)
 
-                # Report Export Location card (Optional Override)
-                with _card():
-                    ui.label("Report Output Location (Optional)").classes("text-lg font-semibold")
-                    ui.label(
-                        "Choose where HTML & PDF reports are saved (defaults to submission folder)."
-                    ).classes("text-sm").style(f"color: {MUTED}")
-
-                    with ui.row().classes("w-full items-center gap-2"):
-                        out_dir_input = ui.input(
-                            placeholder="Defaults to submission folder...",
-                            value=getattr(state, "out_dir_path", "") or "",
-                            on_change=lambda e: setattr(state, "out_dir_path", e.value)
-                        ).props('style="font-size: 16px; flex: 1;"').classes("flex-1")
-
-
-                        def _browse_out_dir():
-                            import subprocess as _sp
-                            try:
-                                res = _sp.run(
-                                    ["osascript", "-e",
-                                     'POSIX path of '
-                                     '(choose folder with prompt "Select report output folder")'],
-                                    capture_output=True, text=True, timeout=30,
-                                )
-                                path = res.stdout.strip()
-                                if path:
-                                    out_dir_input.value = path
-                            except Exception:
-                                ui.notification(
-                                    "Paste the folder path manually.", type="info"
-                                )
-
-                        _small_btn("Browse", MUTED, _browse_out_dir)
-
             # ── Right column ──────────────────────────────────────
+
             with ui.column().classes("flex-1 gap-6 min-w-0"):
                 # Saved Reports Vault Card (Visible to all users)
                 with _card():
