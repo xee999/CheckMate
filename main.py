@@ -619,60 +619,7 @@ def build_ui():
   display: inline-block;
   flex-shrink: 0;
 }
-
-/* Stratum AI Quasar Overrides */
-.q-uploader {
-  border-radius: 20px !important;
-  box-shadow: 0 8px 30px -4px rgba(11, 9, 10, 0.05) !important;
-  border: 2px dashed #CCF458 !important;
-  background-color: #FFFFFF !important;
-  overflow: hidden !important;
-}
-.q-uploader__header {
-  background-color: #0B090A !important;
-  color: #FFFFFF !important;
-  border-bottom: 1px solid #1F2937 !important;
-  padding: 14px 18px !important;
-}
-.q-uploader__header-content {
-  color: #CCF458 !important;
-}
-.q-uploader__title {
-  font-weight: 800 !important;
-  font-size: 14px !important;
-  letter-spacing: 0.02em !important;
-  color: #FFFFFF !important;
-}
-.q-uploader__subtitle {
-  color: #CCF458 !important;
-  font-size: 11px !important;
-  font-family: monospace !important;
-}
-.q-uploader__file {
-  border-radius: 12px !important;
-  background-color: #F1F4EE !important;
-  margin: 8px !important;
-  border: 1px solid #E0E5DC !important;
-}
-.q-uploader__file-status {
-  color: #34970D !important;
-}
-.q-uploader__file-action .q-icon {
-  color: #0B090A !important;
-}
-.q-uploader__spinner {
-  color: #CCF458 !important;
-}
-.q-btn {
-  border-radius: 9999px !important;
-}
-.q-btn--standard.bg-primary {
-  background-color: #CCF458 !important;
-  color: #0B090A !important;
-  font-weight: 800 !important;
-}
 </style>""")
-
     ui.query("body").style(
         f"background-color: {BG}; font-family: 'Outfit', Inter, -apple-system, sans-serif;"
     )
@@ -754,8 +701,7 @@ def build_ui():
             api_key_input = ui.input(
                 placeholder="Paste your API key here...",
                 value=saved_cfg.get("api_key", ""),
-            ).props("type=password password-toggle-button").classes("w-full mb-4")
-
+            ).props("type=password").classes("w-full mb-4")
 
             ui.label("Model Name").classes("text-sm font-semibold").style(
                 f"color: {INK}"
@@ -897,19 +843,20 @@ def build_ui():
 
             # ── Left column ───────────────────────────────────────
             with ui.column().classes("flex-1 gap-6 min-w-0"):
-                # RFP document / folder card
+                # RFP document card
                 with _card():
-                    ui.label("RFP Document or Folder Upload").classes("text-lg font-bold text-gray-900 dark:text-white")
-                    ui.label("Upload single/multiple RFP files, or paste/browse a folder path containing multiple RFP documents.").classes(
-                        "text-xs mb-3"
+                    ui.label("RFP Document or Folder").classes("text-lg font-semibold")
+                    ui.label("Select an RFP file or a folder containing multiple RFP documents (PDF, Word, Excel, text, image).").classes(
+                        "text-sm"
                     ).style(f"color: {MUTED}")
 
-                    with ui.row().classes("w-full items-center gap-2 mb-2"):
+                    with ui.row().classes("w-full items-center gap-2"):
                         rfp_input = ui.input(
-                            placeholder="File path or RFP folder location...",
+                            placeholder="Path to RFP file or folder...",
                             value=state.rfp_path or "",
-                            on_change=lambda e: (setattr(state, "rfp_path", e.value), _load_rfp(e.value) if e.value and Path(e.value).exists() else None)
-                        ).props('style="font-size: 14px; flex: 1;"').classes("flex-1")
+                            on_change=lambda e: setattr(state, "rfp_path", e.value)
+                        ).props('style="font-size: 16px; flex: 1;"').classes("flex-1")
+
 
                         def _browse_rfp_file():
                             import subprocess as _sp
@@ -925,7 +872,7 @@ def build_ui():
                                     rfp_input.value = path
                                     _load_rfp(path)
                             except Exception:
-                                ui.notification("Paste file path manually.", type="info")
+                                ui.notification("Paste the file path manually.", type="info")
 
                         def _browse_rfp_folder():
                             import subprocess as _sp
@@ -941,58 +888,37 @@ def build_ui():
                                     rfp_input.value = path
                                     _load_rfp(path)
                             except Exception:
-                                ui.notification("Paste folder path manually.", type="info")
+                                ui.notification("Paste the folder path manually.", type="info")
 
                         _small_btn("Browse File", MUTED, _browse_rfp_file)
                         _small_btn("Browse Folder", MUTED, _browse_rfp_folder)
 
-                    def _handle_rfp_upload(e):
-                        upload_dir = Path(__file__).parent / ".bod_data" / "uploads" / "rfp"
-                        upload_dir.mkdir(parents=True, exist_ok=True)
-                        dest = upload_dir / e.name
-                        dest.write_bytes(e.content.read())
-                        
-                        # Count files in upload dir
-                        rfp_files = [f for f in upload_dir.iterdir() if f.is_file() and not f.name.startswith(".")]
-                        if len(rfp_files) > 1:
-                            target_path = str(upload_dir)
-                            rfp_input.value = target_path
-                            _load_rfp(target_path)
-                            ui.notification(f"Uploaded to RFP Folder ({len(rfp_files)} docs): {e.name}", type="positive")
-                        else:
-                            target_path = str(dest)
-                            rfp_input.value = target_path
-                            _load_rfp(target_path)
-                            ui.notification(f"Uploaded RFP: {e.name}", type="positive")
-
-                    ui.upload(on_upload=_handle_rfp_upload, auto_upload=True, multiple=True).props(
-                        "multiple directory webkitdirectory accept='.pdf,.docx,.xlsx,.txt,.png,.jpg' label='☁️ Drag & Drop RFP File(s) or Folder Here'"
-                    ).classes("w-full rounded-xl border-dashed border-2 border-emerald-500/40 p-2 mb-1")
-
                     rfp_input.on("keydown.enter", lambda: _load_rfp(rfp_input.value))
-                    rfp_label = ui.label("").classes("text-xs mt-1 font-mono font-bold").style(f"color: {FOREST}")
+                    rfp_label = ui.label("").classes("text-sm mt-2").style(
+                        f"color: {MUTED}"
+                    )
 
-                # Submission folder upload card
+                # Submission folder card
                 with _card():
-                    ui.label("Submission Documents Upload").classes("text-lg font-bold text-gray-900 dark:text-white")
+                    ui.label("Submission Folder").classes("text-lg font-semibold")
                     ui.label(
-                        "Upload proposal files (PDF, Word) or specify/browse a submission folder."
-                    ).classes("text-xs mb-3").style(f"color: {MUTED}")
+                        "Full path to the folder containing submission PDFs."
+                    ).classes("text-sm").style(f"color: {MUTED}")
 
-                    with ui.row().classes("w-full items-center gap-2 mb-2"):
+                    with ui.row().classes("w-full items-center gap-2"):
                         sub_input = ui.input(
-                            placeholder="Path or submission folder location...",
+                            placeholder="Paste full path to submission folder...",
                             value=getattr(state, "sub_path", "") or "",
                             on_change=lambda e: setattr(state, "sub_path", e.value)
-                        ).props('style="font-size: 14px; flex: 1;"').classes("flex-1")
+                        ).props('style="font-size: 16px; flex: 1;"').classes("flex-1")
 
-                        def _browse_sub_folder():
+                        def _browse_folder():
                             import subprocess as _sp
                             try:
                                 res = _sp.run(
                                     ["osascript", "-e",
                                      'POSIX path of '
-                                     '(choose folder with prompt "Select Submission Folder")'],
+                                     '(choose folder with prompt "Select submission folder")'],
                                     capture_output=True, text=True, timeout=30,
                                 )
                                 path = res.stdout.strip()
@@ -1000,27 +926,45 @@ def build_ui():
                                     sub_input.value = path
                                     setattr(state, "sub_path", path)
                             except Exception:
-                                ui.notification("Paste submission folder path manually.", type="info")
+                                ui.notification(
+                                    "Paste the folder path manually.", type="info"
+                                )
 
-                        _small_btn("Browse Folder", MUTED, _browse_sub_folder)
+                        _small_btn("Browse", MUTED, _browse_folder)
 
-                    def _handle_sub_upload(e):
-                        upload_dir = Path(__file__).parent / ".bod_data" / "uploads" / "submission"
-                        upload_dir.mkdir(parents=True, exist_ok=True)
-                        dest = upload_dir / e.name
-                        dest.write_bytes(e.content.read())
-                        
-                        sub_files = [f for f in upload_dir.iterdir() if f.is_file() and not f.name.startswith(".")]
-                        sub_input.value = str(upload_dir)
-                        setattr(state, "sub_path", str(upload_dir))
-                        ui.notification(f"Uploaded to Submission Folder ({len(sub_files)} docs): {e.name}", type="positive")
+                # Report Export Location card (Optional Override)
+                with _card():
+                    ui.label("Report Output Location (Optional)").classes("text-lg font-semibold")
+                    ui.label(
+                        "Choose where HTML & PDF reports are saved (defaults to submission folder)."
+                    ).classes("text-sm").style(f"color: {MUTED}")
 
-                    ui.upload(on_upload=_handle_sub_upload, auto_upload=True, multiple=True).props(
-                        "multiple directory webkitdirectory accept='.pdf,.docx,.xlsx,.txt' label='☁️ Drag & Drop Submission File(s) or Folder Here'"
-                    ).classes("w-full rounded-xl border-dashed border-2 border-emerald-500/40 p-2")
-
+                    with ui.row().classes("w-full items-center gap-2"):
+                        out_dir_input = ui.input(
+                            placeholder="Defaults to submission folder...",
+                            value=getattr(state, "out_dir_path", "") or "",
+                            on_change=lambda e: setattr(state, "out_dir_path", e.value)
+                        ).props('style="font-size: 16px; flex: 1;"').classes("flex-1")
 
 
+                        def _browse_out_dir():
+                            import subprocess as _sp
+                            try:
+                                res = _sp.run(
+                                    ["osascript", "-e",
+                                     'POSIX path of '
+                                     '(choose folder with prompt "Select report output folder")'],
+                                    capture_output=True, text=True, timeout=30,
+                                )
+                                path = res.stdout.strip()
+                                if path:
+                                    out_dir_input.value = path
+                            except Exception:
+                                ui.notification(
+                                    "Paste the folder path manually.", type="info"
+                                )
+
+                        _small_btn("Browse", MUTED, _browse_out_dir)
 
             # ── Right column ──────────────────────────────────────
             with ui.column().classes("flex-1 gap-6 min-w-0"):
