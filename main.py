@@ -619,7 +619,60 @@ def build_ui():
   display: inline-block;
   flex-shrink: 0;
 }
+
+/* Stratum AI Quasar Overrides */
+.q-uploader {
+  border-radius: 20px !important;
+  box-shadow: 0 8px 30px -4px rgba(11, 9, 10, 0.05) !important;
+  border: 2px dashed #CCF458 !important;
+  background-color: #FFFFFF !important;
+  overflow: hidden !important;
+}
+.q-uploader__header {
+  background-color: #0B090A !important;
+  color: #FFFFFF !important;
+  border-bottom: 1px solid #1F2937 !important;
+  padding: 14px 18px !important;
+}
+.q-uploader__header-content {
+  color: #CCF458 !important;
+}
+.q-uploader__title {
+  font-weight: 800 !important;
+  font-size: 14px !important;
+  letter-spacing: 0.02em !important;
+  color: #FFFFFF !important;
+}
+.q-uploader__subtitle {
+  color: #CCF458 !important;
+  font-size: 11px !important;
+  font-family: monospace !important;
+}
+.q-uploader__file {
+  border-radius: 12px !important;
+  background-color: #F1F4EE !important;
+  margin: 8px !important;
+  border: 1px solid #E0E5DC !important;
+}
+.q-uploader__file-status {
+  color: #34970D !important;
+}
+.q-uploader__file-action .q-icon {
+  color: #0B090A !important;
+}
+.q-uploader__spinner {
+  color: #CCF458 !important;
+}
+.q-btn {
+  border-radius: 9999px !important;
+}
+.q-btn--standard.bg-primary {
+  background-color: #CCF458 !important;
+  color: #0B090A !important;
+  font-weight: 800 !important;
+}
 </style>""")
+
     ui.query("body").style(
         f"background-color: {BG}; font-family: 'Outfit', Inter, -apple-system, sans-serif;"
     )
