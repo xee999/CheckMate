@@ -844,128 +844,62 @@ def build_ui():
 
             # ── Left column ───────────────────────────────────────
             with ui.column().classes("flex-1 gap-6 min-w-0"):
-                # RFP document card
+                # RFP document upload card
                 with _card():
-                    ui.label("RFP Document or Folder").classes("text-lg font-semibold")
-                    ui.label("Select an RFP file or a folder containing multiple RFP documents (PDF, Word, Excel, text, image).").classes(
-                        "text-sm"
+                    ui.label("RFP Document Upload").classes("text-lg font-bold text-gray-900 dark:text-white")
+                    ui.label("Upload an RFP file (PDF, Word, Excel, TXT) or paste a server folder path.").classes(
+                        "text-xs mb-3"
                     ).style(f"color: {MUTED}")
 
-                    with ui.row().classes("w-full items-center gap-2"):
-                        rfp_input = ui.input(
-                            placeholder="Path to RFP file or folder...",
-                            value=state.rfp_path or "",
-                            on_change=lambda e: setattr(state, "rfp_path", e.value)
-                        ).props('style="font-size: 16px; flex: 1;"').classes("flex-1")
+                    rfp_input = ui.input(
+                        placeholder="Path or uploaded file location...",
+                        value=state.rfp_path or "",
+                        on_change=lambda e: setattr(state, "rfp_path", e.value)
+                    ).props('style="font-size: 14px;"').classes("w-full mb-3")
 
+                    def _handle_rfp_upload(e):
+                        upload_dir = Path(__file__).parent / ".bod_data" / "uploads" / "rfp"
+                        upload_dir.mkdir(parents=True, exist_ok=True)
+                        dest = upload_dir / e.name
+                        dest.write_bytes(e.content.read())
+                        rfp_input.value = str(dest)
+                        setattr(state, "rfp_path", str(dest))
+                        _load_rfp(str(dest))
+                        ui.notification(f"Uploaded RFP: {e.name}", type="positive")
 
-                        def _browse_rfp_file():
-                            import subprocess as _sp
-                            try:
-                                res = _sp.run(
-                                    ["osascript", "-e",
-                                     'set p to POSIX path of '
-                                     '(choose file with prompt "Select RFP Document File")'],
-                                    capture_output=True, text=True, timeout=30,
-                                )
-                                path = res.stdout.strip()
-                                if path:
-                                    rfp_input.value = path
-                                    _load_rfp(path)
-                            except Exception:
-                                ui.notification("Paste the file path manually.", type="info")
-
-                        def _browse_rfp_folder():
-                            import subprocess as _sp
-                            try:
-                                res = _sp.run(
-                                    ["osascript", "-e",
-                                     'POSIX path of '
-                                     '(choose folder with prompt "Select RFP Documents Folder")'],
-                                    capture_output=True, text=True, timeout=30,
-                                )
-                                path = res.stdout.strip()
-                                if path:
-                                    rfp_input.value = path
-                                    _load_rfp(path)
-                            except Exception:
-                                ui.notification("Paste the folder path manually.", type="info")
-
-                        _small_btn("Browse File", MUTED, _browse_rfp_file)
-                        _small_btn("Browse Folder", MUTED, _browse_rfp_folder)
+                    ui.upload(on_upload=_handle_rfp_upload, auto_upload=True, max_files=1).props(
+                        "accept='.pdf,.docx,.xlsx,.txt,.png,.jpg' label='☁️ Drag & Drop or Click to Upload RFP File'"
+                    ).classes("w-full rounded-xl border-dashed border-2 border-emerald-500/40 p-2")
 
                     rfp_input.on("keydown.enter", lambda: _load_rfp(rfp_input.value))
-                    rfp_label = ui.label("").classes("text-sm mt-2").style(
-                        f"color: {MUTED}"
-                    )
+                    rfp_label = ui.label("").classes("text-xs mt-2 font-mono").style(f"color: {MUTED}")
 
-                # Submission folder card
+                # Submission folder upload card
                 with _card():
-                    ui.label("Submission Folder").classes("text-lg font-semibold")
+                    ui.label("Submission Documents Upload").classes("text-lg font-bold text-gray-900 dark:text-white")
                     ui.label(
-                        "Full path to the folder containing submission PDFs."
-                    ).classes("text-sm").style(f"color: {MUTED}")
+                        "Upload proposal files (PDF, Word) or specify a submission folder."
+                    ).classes("text-xs mb-3").style(f"color: {MUTED}")
 
-                    with ui.row().classes("w-full items-center gap-2"):
-                        sub_input = ui.input(
-                            placeholder="Paste full path to submission folder...",
-                            value=getattr(state, "sub_path", "") or "",
-                            on_change=lambda e: setattr(state, "sub_path", e.value)
-                        ).props('style="font-size: 16px; flex: 1;"').classes("flex-1")
+                    sub_input = ui.input(
+                        placeholder="Path or uploaded submission folder...",
+                        value=getattr(state, "sub_path", "") or "",
+                        on_change=lambda e: setattr(state, "sub_path", e.value)
+                    ).props('style="font-size: 14px;"').classes("w-full mb-3")
 
-                        def _browse_folder():
-                            import subprocess as _sp
-                            try:
-                                res = _sp.run(
-                                    ["osascript", "-e",
-                                     'POSIX path of '
-                                     '(choose folder with prompt "Select submission folder")'],
-                                    capture_output=True, text=True, timeout=30,
-                                )
-                                path = res.stdout.strip()
-                                if path:
-                                    sub_input.value = path
-                                    setattr(state, "sub_path", path)
-                            except Exception:
-                                ui.notification(
-                                    "Paste the folder path manually.", type="info"
-                                )
+                    def _handle_sub_upload(e):
+                        upload_dir = Path(__file__).parent / ".bod_data" / "uploads" / "submission"
+                        upload_dir.mkdir(parents=True, exist_ok=True)
+                        dest = upload_dir / e.name
+                        dest.write_bytes(e.content.read())
+                        sub_input.value = str(upload_dir)
+                        setattr(state, "sub_path", str(upload_dir))
+                        ui.notification(f"Uploaded Proposal: {e.name}", type="positive")
 
-                        _small_btn("Browse", MUTED, _browse_folder)
+                    ui.upload(on_upload=_handle_sub_upload, auto_upload=True, multiple=True).props(
+                        "accept='.pdf,.docx,.xlsx,.txt' label='☁️ Drag & Drop or Click to Upload Submission Proposals'"
+                    ).classes("w-full rounded-xl border-dashed border-2 border-emerald-500/40 p-2")
 
-                # Report Export Location card (Optional Override)
-                with _card():
-                    ui.label("Report Output Location (Optional)").classes("text-lg font-semibold")
-                    ui.label(
-                        "Choose where HTML & PDF reports are saved (defaults to submission folder)."
-                    ).classes("text-sm").style(f"color: {MUTED}")
-
-                    with ui.row().classes("w-full items-center gap-2"):
-                        out_dir_input = ui.input(
-                            placeholder="Defaults to submission folder...",
-                            value=getattr(state, "out_dir_path", "") or "",
-                            on_change=lambda e: setattr(state, "out_dir_path", e.value)
-                        ).props('style="font-size: 16px; flex: 1;"').classes("flex-1")
-
-
-                        def _browse_out_dir():
-                            import subprocess as _sp
-                            try:
-                                res = _sp.run(
-                                    ["osascript", "-e",
-                                     'POSIX path of '
-                                     '(choose folder with prompt "Select report output folder")'],
-                                    capture_output=True, text=True, timeout=30,
-                                )
-                                path = res.stdout.strip()
-                                if path:
-                                    out_dir_input.value = path
-                            except Exception:
-                                ui.notification(
-                                    "Paste the folder path manually.", type="info"
-                                )
-
-                        _small_btn("Browse", MUTED, _browse_out_dir)
 
             # ── Right column ──────────────────────────────────────
             with ui.column().classes("flex-1 gap-6 min-w-0"):
