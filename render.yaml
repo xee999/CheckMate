@@ -2,7 +2,7 @@ services:
   - type: web
     name: checkmate-app
     env: docker
-    plan: starter
+    plan: free
     dockerfilePath: ./Dockerfile
     dockerContext: .
     envVars:
@@ -16,7 +16,3 @@ services:
         value: admin
       - key: ADMIN_PASSWORD
         value: AdminPassword123!
-    disk:
-      name: bod-data
-      mountPath: /app/.bod_data
-      sizeGB: 1
